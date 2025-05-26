@@ -10,9 +10,10 @@ A modern web application built with Next.js, TypeScript, and Tailwind CSS.
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand) 4.5.0
 - **Authentication**: [Supabase Auth](https://supabase.com/auth) 2.39.3
 - **UI Components**: 
-  - [Radix UI](https://www.radix-ui.com/) for accessible components
+  - [shadcn/ui](https://ui.shadcn.com/) for beautiful, accessible components
+  - [Radix UI](https://www.radix-ui.com/) primitives (used by shadcn/ui)
   - [Lucide React](https://lucide.dev/) for icons
-  - Custom components with Tailwind CSS
+  - Custom components built with Radix UI primitives and Tailwind CSS
 
 ## 📋 Prerequisites
 
