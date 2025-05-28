@@ -1,55 +1,71 @@
-'use client';
-
-import React from "react";
+import { CalendarDays, Camera, ClipboardCheck, Clock, Shield, UserCheck } from "lucide-react"
 
 const features = [
   {
-    icon: "📅",
+    icon: CalendarDays,
     title: "Smart Scheduling",
-    desc: "Automatically check availability and prevent double bookings",
+    description: "Automatically check availability and prevent double bookings"
   },
   {
-    icon: "📝",
+    icon: ClipboardCheck,
     title: "Auto Contracts",
-    desc: "Generate professional rental agreements with just a few clicks",
+    description: "Generate professional rental agreements with just a few clicks"
   },
   {
-    icon: "🪪",
+    icon: UserCheck,
     title: "ID Verification",
-    desc: "Securely collect and store customer identification",
+    description: "Securely collect and store customer identification"
   },
   {
-    icon: "✍️",
+    icon: Shield,
     title: "Digital Signatures",
-    desc: "Legally binding electronic signatures for all contracts",
+    description: "Legally binding electronic signatures for all contracts"
   },
   {
-    icon: "🔄",
+    icon: Clock,
     title: "Flexible Scheduling",
-    desc: "Allow admins to modify bookings and handle change requests",
+    description: "Allow admins to modify bookings and handle change requests"
   },
   {
-    icon: "📷",
+    icon: Camera,
     title: "Equipment Management",
-    desc: "Track your inventory and maintenance schedules",
-  },
-];
+    description: "Track your inventory and maintenance schedules"
+  }
+]
 
-export const Features = () => (
-  <section id="features" className="w-full bg-black text-gold-400 py-16 px-4">
-    <div className="max-w-6xl mx-auto text-center mb-12">
-      <span className="inline-block bg-gold-400/10 text-gold-300 px-4 py-1 rounded-full mb-4 font-semibold">Premium Features</span>
-      <h2 className="text-4xl md:text-5xl font-extrabold mb-4">Powerful <span className="text-gold-300">Features</span></h2>
-      <p className="text-lg text-gold-300">Everything you need to run your camera rental business efficiently</p>
-    </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-      {features.map((f, i) => (
-        <div key={i} className="bg-black/80 border border-gold-400 rounded-xl p-8 flex flex-col items-center shadow-lg hover:scale-105 transition-transform">
-          <div className="text-4xl mb-4">{f.icon}</div>
-          <div className="text-xl font-bold mb-2 text-gold-400">{f.title}</div>
-          <div className="text-gold-300 text-center">{f.desc}</div>
+export const Features = () => {
+  return (
+    <section id="features" className="bg-secondary py-12 md:py-24 lg:py-32 border-y border-gold-700/20">
+      <div className="responsive-container">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="inline-flex items-center rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-sm text-gold-500">
+            <span className="font-medium">Premium Features</span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="responsive-heading font-bold tracking-tighter">
+              Powerful <span className="text-gold-400">Features</span>
+            </h2>
+            <p className="max-w-[900px] text-muted-foreground responsive-body">
+              Everything you need to run your camera rental business efficiently
+            </p>
+          </div>
         </div>
-      ))}
-    </div>
-  </section>
-); 
+        <div className="responsive-container mt-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {features.map((feature, i) => (
+              <div key={i} className="flex flex-col items-center space-y-2 rounded-lg border border-gold-700/30 p-6 shadow-lg hover:shadow-gold-500/10 transition-all duration-300 group">
+                <div className="rounded-full bg-gold-500/10 p-3 group-hover:bg-gold-500/20 transition-colors duration-300">
+                  <feature.icon className="h-10 w-10 text-gold-400 group-hover:scale-110 transition-transform duration-300" />
+                </div>
+                <h3 className="text-xl font-bold">{feature.title}</h3>
+                <p className="text-center text-muted-foreground">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+} 

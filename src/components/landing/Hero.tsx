@@ -1,64 +1,71 @@
-'use client';
+"use client"
 
-import React, { useState } from "react";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { VideoModal } from "./VideoModal"
+import { useState } from "react"
 
 export const Hero = () => {
-  const [chat, setChat] = useState("");
-  const [messages, setMessages] = useState<string[]>([]);
-
-  const handleSend = () => {
-    if (chat.trim()) {
-      setMessages([...messages, chat]);
-      setChat("");
-    }
-  };
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false)
 
   return (
-    <section className="w-full bg-black text-gold-400 py-16 px-4 flex flex-col md:flex-row items-center justify-center gap-12">
-      {/* Left: Headline, subheadline, chat */}
-      <div className="flex-1 max-w-xl">
-        <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-gold-400 leading-tight">
-          Streamline Your <span className="text-gold-300">Camera Rental</span> Business
-        </h1>
-        <p className="text-lg md:text-xl text-gold-300 mb-8">
-          Try our AI-powered scheduling assistant below!
-        </p>
-        <div className="bg-black/80 border border-gold-400 rounded-xl p-6 shadow-lg">
-          <div className="h-40 overflow-y-auto mb-4 space-y-2">
-            {messages.length === 0 ? (
-              <div className="text-gold-300">Start a conversation with our AI assistant...</div>
-            ) : (
-              messages.map((msg, idx) => (
-                <div key={idx} className="bg-gold-400/10 p-2 rounded text-gold-200">{msg}</div>
-              ))
-            )}
+    <section className="responsive-padding relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gold-900/20 via-background to-background"></div>
+      <div className="responsive-container relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="flex flex-col justify-center space-y-4 text-center lg:text-left">
+            <div className="inline-flex items-center rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-sm text-gold-500 w-fit mx-auto lg:mx-0">
+              <span className="font-medium">Premium Booking System</span>
+            </div>
+            <div className="space-y-2">
+              <h1 className="responsive-heading font-bold tracking-tighter">
+                Streamline Your <span className="text-gold-400">Business Booking</span> Process
+              </h1>
+              <p className="max-w-[600px] text-muted-foreground md:text-xl mx-auto lg:mx-0">
+                Manage reservations, generate contracts, and verify customers - all in one place. Perfect for camera
+                services in the Philippines.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <Link href="/signup" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="w-full gold-gradient hover:opacity-90 transition-opacity"
+                >
+                  Get Started
+                </Button>
+              </Link>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto border-gold-500/30 hover:border-gold-500/80 hover:bg-gold-500/10"
+                onClick={() => setIsVideoModalOpen(true)}
+              >
+                View Demo
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <input
-              className="flex-1 px-4 py-2 rounded bg-black border border-gold-400 text-gold-400 focus:outline-none"
-              placeholder="Type your message..."
-              value={chat}
-              onChange={e => setChat(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-            />
-            <button
-              className="px-4 py-2 rounded bg-gold-400 text-black font-semibold hover:bg-gold-300 transition"
-              onClick={handleSend}
+          <div className="relative mt-8 lg:mt-0">
+            <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-gold-400 to-gold-600 opacity-30 blur-xl"></div>
+            <video
+              className="relative rounded-lg object-cover border border-gold-500/20 shadow-lg w-full aspect-video"
+              playsInline
+              muted
+              loop
+              autoPlay
+              preload="auto"
             >
-              Send
-            </button>
+              <source src="/demo/tutorial.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         </div>
       </div>
-      {/* Right: Calendar placeholder */}
-      <div className="flex-1 max-w-md w-full flex items-center justify-center">
-        <div className="bg-black/80 border border-gold-400 rounded-xl p-6 shadow-lg w-full">
-          <div className="text-center text-gold-300 mb-2 font-semibold">Calendar Preview</div>
-          <div className="h-64 flex items-center justify-center text-gold-400 text-2xl border-2 border-dashed border-gold-300 rounded-lg">
-            [Calendar Here]
-          </div>
-        </div>
-      </div>
+
+      <VideoModal 
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+      />
     </section>
-  );
-}; 
+  )
+} 

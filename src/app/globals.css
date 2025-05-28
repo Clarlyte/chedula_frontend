@@ -140,7 +140,7 @@
   }
 
   .gold-gradient {
-    @apply bg-gradient-to-r from-gold-400 to-gold-600 text-black;
+    @apply bg-gradient-to-r from-gold-400 to-gold-400 text-black;
   }
 
   .interactive-icon {
