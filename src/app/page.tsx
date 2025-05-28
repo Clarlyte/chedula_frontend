@@ -1,14 +1,23 @@
+import { Navbar } from "@/components/common/navbar";
+import { Hero } from "@/components/landing/Hero";
+import { Features } from "@/components/landing/Features";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Testimonials } from "@/components/landing/Testimonials";
+import { Pricing } from "@/components/landing/Pricing";
+import { Footer } from "@/components/common/footer";
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold text-center mb-8">
-          AI-Powered Scheduling System
-        </h1>
-        <p className="text-center text-lg mb-4">
-          Intelligent scheduling for camera rental shops and appointment-based businesses
-        </p>
-      </div>
-    </main>
-  )
+    <div className="flex flex-col min-h-screen bg-black text-gold-400">
+      <Navbar />
+      <main className="flex-1">
+        <Hero />
+        <Features />
+        <HowItWorks />
+        <Testimonials />
+        <Pricing />
+      </main>
+      <Footer />
+    </div>
+  );
 } 
