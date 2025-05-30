@@ -1,39 +1,39 @@
 const steps = [
   {
     step: 1,
-    title: "Customer Books Equipment",
-    description: "Customers select equipment and preferred rental dates",
+    title: "Customer Requests Booking",
+    description: "Customer selects a service (or equipment) and preferred date/time via chat or form.",
   },
   {
     step: 2,
-    title: "System Checks Availability",
-    description: "Automatic verification ensures no scheduling conflicts",
+    title: "AI Checks Availability",
+    description: "AI assistant automatically verifies availability, detects conflicts, and suggests alternatives if needed.",
   },
   {
     step: 3,
-    title: "Contract Generation",
-    description: "Digital contract is created with customer details and rental terms",
+    title: "AI Collects Details",
+    description: "AI gathers all necessary customer information and required documents (e.g., ID, preferences).",
   },
   {
     step: 4,
-    title: "ID Verification",
-    description: "Customer uploads ID for verification and security",
+    title: "Contract Generation",
+    description: "A digital contract is automatically created with all booking details and terms.",
   },
   {
     step: 5,
     title: "Digital Signature",
-    description: "Customer signs the contract electronically",
+    description: "Customer reviews and signs the contract electronically for security and compliance.",
   },
   {
     step: 6,
-    title: "Rental Confirmed",
-    description: "Both parties receive confirmation and rental details",
+    title: "Booking Confirmed",
+    description: "Both customer and business receive instant confirmation and all relevant details.",
   },
 ]
 
 export const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-12 md:py-24 lg:py-32">
+    <section id="how-it-works" className="responsive-padding bg-background">
       <div className="responsive-container">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="inline-flex items-center rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-sm text-gold-500">
@@ -44,7 +44,7 @@ export const HowItWorks = () => {
               How It <span className="text-gold-400">Works</span>
             </h2>
             <p className="max-w-[900px] text-muted-foreground responsive-body">
-              Simple process for both rental shop owners and customers
+              Simple, AI-powered process for both business owners and customers
             </p>
           </div>
         </div>

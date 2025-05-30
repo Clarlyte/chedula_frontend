@@ -14,7 +14,7 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Streamline your camera rental business with our powerful platform.
+              Streamline your business with our powerful ai-booking platform.
             </p>
             <div className="flex space-x-6 justify-center sm:justify-start">
               <a href="#" className="footer-social-icon">

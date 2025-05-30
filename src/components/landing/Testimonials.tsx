@@ -79,7 +79,7 @@ export const Testimonials = () => {
               What Our <span className="text-gold-400">Clients Say</span>
             </h2>
             <p className="max-w-[900px] text-muted-foreground responsive-body">
-              Hear from rental shop owners who transformed their business with Rent n&apos; Snap
+              Hear from scheduled service owners who transformed their business with Chedula
             </p>
           </div>
         </div>
@@ -98,7 +98,7 @@ export const Testimonials = () => {
         </div>
 
         <div className="mt-12 flex flex-col items-center space-y-16 w-full">
-          <h3 className="text-2xl font-bold text-center">Trusted by Leading Rental Businesses</h3>
+          <h3 className="text-2xl font-bold text-center">Trusted by Leading Scheduled Services</h3>
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 w-full px-4">
             {partners.map((partner, i) => (
               <div key={i} className="flex items-center justify-center w-[150px] h-[150px] relative">

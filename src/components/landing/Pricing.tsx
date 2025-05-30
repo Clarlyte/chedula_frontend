@@ -9,11 +9,14 @@ const plans = [
     originalPrice: "₱1,999",
     period: "/month",
     features: [
-      "Manage bookings and camera rentals",
-      "SMS & email rental reminders",
+      "AI-powered scheduling assistant",
+      "Smart calendar with conflict detection",
+      "Customer management",
+      "Service catalog management",
       "1 admin user",
-      "Up to 10 equipment entries",
-      "Basic performance dashboard"
+      "Up to 10 services/resources",
+      "Automated reminders",
+      "Basic analytics dashboard"
     ],
     badge: {
       text: "Launch",
@@ -26,13 +29,14 @@ const plans = [
     name: "Pro",
     description: "For scaling businesses",
     price: "₱1,999",
+    originalPrice: "₱3,500",
     period: "/month",
     features: [
       "All Starter features",
-      "Unlimited equipment entries",
-      "Booking analytics + trends",
-      "Customer rental history",
-      "Multi-admin access (up to 3 users)",
+      "Unlimited services/resources",
+      "Advanced analytics & trends",
+      "Customer service history",
+      "Multi-user access (up to 3 users)",
       "Discount & promo codes",
       "Priority support"
     ],
@@ -66,7 +70,7 @@ const plans = [
 
 export const Pricing = () => {
   return (
-    <section id="pricing" className="py-12 md:py-24 lg:py-32">
+    <section id="pricing" className="responsive-padding bg-background">
       <div className="responsive-container">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="inline-flex items-center rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-sm text-gold-500">
@@ -120,6 +124,9 @@ export const Pricing = () => {
                     <div className="text-sm text-gold-400">One-time payment</div>
                   )}
                 </div>
+                {!plan.isLifetime && !plan.isPopular && <div className="h-8"></div>}
+                {plan.isPopular && <div className="h-8"></div>}
+                {plan.isLifetime && <div className="h-8"></div>}
                 <ul className="space-y-2 pb-6 relative z-10">
                   {plan.features.map((feature, j) => (
                     <li key={j} className="flex items-center">

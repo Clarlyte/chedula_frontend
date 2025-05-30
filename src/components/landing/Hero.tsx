@@ -15,14 +15,14 @@ export const Hero = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           <div className="flex flex-col justify-center space-y-4 text-center lg:text-left">
             <div className="inline-flex items-center rounded-full border border-gold-500/30 bg-gold-500/10 px-3 py-1 text-sm text-gold-500 w-fit mx-auto lg:mx-0">
-              <span className="font-medium">Premium Booking System</span>
+              <span className="font-medium">AI-Powered Booking System</span>
             </div>
             <div className="space-y-2">
               <h1 className="responsive-heading font-bold tracking-tighter">
                 Streamline Your <span className="text-gold-400">Business Booking</span> Process
               </h1>
               <p className="max-w-[600px] text-muted-foreground md:text-xl mx-auto lg:mx-0">
-                Manage reservations, generate contracts, and verify customers - all in one place. Perfect for camera
+                Manage reservations, generate contracts, and verify customers - all in one place. Perfect for scheduled
                 services in the Philippines.
               </p>
             </div>

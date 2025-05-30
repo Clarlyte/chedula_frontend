@@ -3,33 +3,33 @@ import { CalendarDays, Camera, ClipboardCheck, Clock, Shield, UserCheck } from "
 const features = [
   {
     icon: CalendarDays,
-    title: "Smart Scheduling",
-    description: "Automatically check availability and prevent double bookings"
+    title: "AI-Powered Scheduling",
+    description: "Natural language interface for managing appointments and services"
   },
   {
     icon: ClipboardCheck,
-    title: "Auto Contracts",
-    description: "Generate professional rental agreements with just a few clicks"
+    title: "Smart Calendar",
+    description: "Visual calendar with conflict detection and flexible scheduling options"
   },
   {
     icon: UserCheck,
-    title: "ID Verification",
-    description: "Securely collect and store customer identification"
+    title: "Customer Management",
+    description: "Store customer information and track service history"
   },
   {
     icon: Shield,
-    title: "Digital Signatures",
-    description: "Legally binding electronic signatures for all contracts"
+    title: "Service Catalog",
+    description: "Manage your services, equipment, and resources with availability tracking"
   },
   {
     icon: Clock,
-    title: "Flexible Scheduling",
-    description: "Allow admins to modify bookings and handle change requests"
+    title: "Booking Links",
+    description: "Shareable booking pages for customers to self-schedule appointments"
   },
   {
     icon: Camera,
-    title: "Equipment Management",
-    description: "Track your inventory and maintenance schedules"
+    title: "Contract Generation",
+    description: "Automated service agreements with digital signatures"
   }
 ]
 
