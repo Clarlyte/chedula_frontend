@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,7 +51,7 @@ export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
     <div className={cn("grid gap-6", className)} {...props}>
       <form onSubmit={onSubmit}>
         <div className="grid gap-4">
-          <div className="grid gap-1">
+          <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -64,8 +65,16 @@ export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
               required
             />
           </div>
-          <div className="grid gap-1">
-            <Label htmlFor="password">Password</Label>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                href="/reset-password"
+                className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               name="password"
@@ -78,7 +87,7 @@ export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
           {error && (
             <p className="text-sm text-red-500">{error}</p>
           )}
-          <Button disabled={isLoading}>
+          <Button disabled={isLoading} className="w-full">
             {isLoading && (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
             )}

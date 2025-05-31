@@ -40,7 +40,7 @@ export function UserRegisterForm({ className, ...props }: UserRegisterFormProps)
         return
       }
 
-      router.push("/login?message=Check your email to confirm your account")
+      router.push("/verify-email")
     } catch (error) {
       setError("An unexpected error occurred")
     } finally {
@@ -75,9 +75,10 @@ export function UserRegisterForm({ className, ...props }: UserRegisterFormProps)
               autoComplete="new-password"
               disabled={isLoading}
               required
+              minLength={6}
             />
           </div>
-          <Button disabled={isLoading}>
+          <Button disabled={isLoading} className="w-full">
             {isLoading && (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
             )}

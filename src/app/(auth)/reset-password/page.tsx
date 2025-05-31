@@ -1,14 +1,14 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { UserLoginForm } from "@/components/auth/user-login-form"
 import { AuthHeader } from "@/components/auth/auth-header"
+import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 
 export const metadata: Metadata = {
-  title: "Login",
-  description: "Login to your account",
+  title: "Reset Password",
+  description: "Reset your password",
 }
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <AuthHeader />
@@ -16,21 +16,23 @@ export default function LoginPage() {
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col space-y-2 text-center">
             <h1 className="text-2xl font-semibold tracking-tight">
-              Welcome back
+              Reset your password
             </h1>
             <p className="text-sm text-muted-foreground">
-              Enter your email to sign in to your account
+              Enter your email address and we'll send you a link to reset your password
             </p>
           </div>
-          <UserLoginForm />
-          <p className="px-8 text-center text-sm text-muted-foreground">
+          
+          <ResetPasswordForm />
+          
+          <div className="text-center">
             <Link
-              href="/signup"
-              className="hover:text-brand underline underline-offset-4"
+              href="/login"
+              className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4"
             >
-              Don&apos;t have an account? Sign Up
+              Back to login
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>
