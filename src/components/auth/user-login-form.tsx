@@ -3,18 +3,17 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icons } from "@/components/icons"
 import { cn } from "@/lib/utils"
+import { authHelpers, userService } from "@/lib/api"
 
 interface UserLoginFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
   const router = useRouter()
-  const supabase = createClientComponentClient()
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,20 +27,49 @@ export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
     const password = formData.get("password") as string
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      // Sign in with Supabase
+      const { data, error: signInError } = await authHelpers.signIn(email, password)
 
-      if (error) {
-        setError(error.message)
+      if (signInError) {
+        setError(signInError.message)
         return
       }
 
+      if (!data.session) {
+        setError("Authentication failed - no session created")
+        return
+      }
+
+      // Verify token with backend and get/create profile
+      const { data: verifyData, error: verifyError } = await authHelpers.verifyToken(
+        data.session.access_token
+      )
+
+      if (verifyError) {
+        console.error("Backend verification failed:", verifyError)
+        // Continue anyway - profile might be created later
+      }
+
+      // Check if user profile exists and is complete
+      const { data: profileData, error: profileError } = await userService.getProfile()
+      
+      if (profileError && profileError.status !== 404) {
+        console.error("Error fetching profile:", profileError)
+      }
+
+      // Determine where to redirect based on profile status
+      if (!profileData || !profileData.business_name || !profileData.business_type) {
+        // User needs to complete onboarding
+        router.push("/onboarding")
+      } else {
+        // User has completed onboarding
+        router.push("/dashboard")
+      }
+
       router.refresh()
-      router.push("/dashboard")
-    } catch (error) {
-      setError("An unexpected error occurred")
+    } catch (error: any) {
+      console.error("Login error:", error)
+      setError(error.message || "An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }
