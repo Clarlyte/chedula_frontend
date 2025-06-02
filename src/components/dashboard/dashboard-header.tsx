@@ -1,17 +1,10 @@
+"use client"
+
 import { User } from "@supabase/supabase-js"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ThemeToggle } from "@/components/theme-toggle"
+import Link from "next/link"
+import Image from "next/image"
 
 interface DashboardHeaderProps {
   user: User
@@ -23,55 +16,35 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.refresh()
+    router.push("/login")
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 hidden md:flex">
-          <a className="mr-6 flex items-center space-x-2" href="/">
-            <span className="hidden font-bold sm:inline-block">
-              Chedula
-            </span>
-          </a>
-        </div>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            {/* Add search component here if needed */}
-          </div>
-          <nav className="flex items-center space-x-2">
-            <ThemeToggle />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-8 w-8 rounded-full"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.user_metadata.avatar_url} alt={user.email || ""} />
-                    <AvatarFallback>
-                      {user.email?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.email}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user.user_metadata.business_name || "Business Owner"}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </nav>
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="responsive-container flex h-16 items-center justify-between">
+        <Link href="/dashboard" className="flex items-center gap-0 group">
+          <Image 
+            src="/images/logo.svg" 
+            alt="Chedula Logo" 
+            width={50} 
+            height={50} 
+            className="h-14 w-14 sm:h-16 sm:w-16 interactive-icon"
+          />
+          <span className="text-lg sm:text-xl font-bold">
+            Chedula
+          </span>
+        </Link>
+        
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="text-sm text-muted-foreground hidden sm:block">
+            Welcome, {user.email}
+          </span>
+          <button
+            onClick={handleSignOut}
+            className="border border-gold-500/30 hover:border-gold-500/80 hover:bg-gold-500/10 px-4 py-2 text-sm rounded-md transition-colors"
+          >
+            Log out
+          </button>
         </div>
       </div>
     </header>

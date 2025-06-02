@@ -6,7 +6,6 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
 import { createContext, useContext, useEffect } from "react"
 import type { Database } from "@/types/supabase"
-import { AuthProvider } from "./auth-provider"
 
 type SupabaseContext = {
   supabase: ReturnType<typeof createClientComponentClient<Database>>
@@ -36,7 +35,7 @@ export function SupabaseProvider({
 
   return (
     <Context.Provider value={{ supabase }}>
-      <AuthProvider>{children}</AuthProvider>
+      {children}
     </Context.Provider>
   )
 }

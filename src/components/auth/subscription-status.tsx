@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useAuth } from "@/contexts/AuthContext"
+import { useAuth } from "@/components/providers/auth-provider"
 
 export function SubscriptionStatus() {
   const { user } = useAuth()

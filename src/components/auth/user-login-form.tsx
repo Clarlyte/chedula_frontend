@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,8 @@ interface UserLoginFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/dashboard'
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,30 +42,48 @@ export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
         return
       }
 
-      // Verify token with backend and get/create profile
+      // Verify token with backend
       const { data: verifyData, error: verifyError } = await authHelpers.verifyToken(
         data.session.access_token
       )
 
+      console.log("verifyData", verifyData, "verifyError", verifyError);
+
       if (verifyError) {
-        console.error("Backend verification failed:", verifyError)
-        // Continue anyway - profile might be created later
+        console.error("Backend verification failed:", verifyError);
+        setError("Authentication failed. Please try again.");
+        setIsLoading(false);
+        return;
       }
 
       // Check if user profile exists and is complete
       const { data: profileData, error: profileError } = await userService.getProfile()
-      
+
+      console.log("profileData", profileData, "profileError", profileError);
+      console.log("is_onboarded status:", profileData?.is_onboarded);
+
       if (profileError && profileError.status !== 404) {
-        console.error("Error fetching profile:", profileError)
+        console.error("Error fetching profile:", profileError);
+        setError("Could not fetch profile. Please try again.");
+        setIsLoading(false);
+        return;
       }
 
       // Determine where to redirect based on profile status
-      if (!profileData || !profileData.business_name || !profileData.business_type) {
+      if (!profileData || !profileData.business_name || !profileData.business_type || !profileData.is_onboarded) {
         // User needs to complete onboarding
+        console.log("Redirecting to onboarding - missing data or not onboarded");
+        console.log("Redirect reason:", {
+          hasProfileData: !!profileData,
+          hasBusinessName: !!profileData?.business_name,
+          hasBusinessType: !!profileData?.business_type,
+          isOnboarded: profileData?.is_onboarded
+        });
         router.push("/onboarding")
       } else {
-        // User has completed onboarding
-        router.push("/dashboard")
+        // User has completed onboarding - redirect to intended page or dashboard
+        console.log("Redirecting to:", redirectTo);
+        router.push(redirectTo)
       }
 
       router.refresh()
