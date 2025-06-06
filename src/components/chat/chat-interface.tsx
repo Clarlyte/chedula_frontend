@@ -8,20 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/providers/auth-provider"
-import { useSupabase } from "@/components/providers/supabase-provider"
-
-interface ChatMessage {
-  id: string
-  sender_type: 'user' | 'ai' | 'system'
-  content: string
-  timestamp: string
-  status?: 'sent' | 'processing' | 'processed' | 'failed'
-  metadata?: {
-    processing_time_ms?: number
-    entities?: any[]
-    actions_count?: number
-  }
-}
+import { createAIAssistantWebSocket, type ChatMessage } from "@/lib/websocket"
 
 interface ActionFeedback {
   action_id: string
@@ -36,10 +23,11 @@ export function ChatInterface() {
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [isTyping, setIsTyping] = useState(false)
   const [actionFeedbacks, setActionFeedbacks] = useState<ActionFeedback[]>([])
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const wsRef = useRef<ReturnType<typeof createAIAssistantWebSocket> | null>(null)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -49,80 +37,121 @@ export function ChatInterface() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // API helper function with improved error handling
-  const makeAPIRequest = async (endpoint: string, options: RequestInit = {}) => {
-    try {
-      const token = await getToken()
-      
-      if (!token) {
-        throw new Error('Authentication required - please refresh the page')
-      }
-
-      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://your-backend-domain.com' : 'http://localhost:8000'}/api/v1/ai/${endpoint}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          ...options.headers,
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${response.status}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('API request failed:', error)
-      throw error
-    }
-  }
-
-  // Initialize connection and load chat history
+  // Initialize WebSocket connection
   const initializeChat = useCallback(async () => {
-    if (!user || authLoading) return
+    if (!user || authLoading || wsRef.current) return
 
     try {
       setIsLoading(true)
       
-      // Wait a bit for Supabase session to be fully ready
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Test connection
-      await makeAPIRequest('test/')
-      setIsConnected(true)
-
-      // Create or get session
-      if (!sessionId) {
-        const sessionData = await makeAPIRequest('chat/session/', {
-          method: 'POST'
-        })
-        setSessionId(sessionData.session_id)
+      // Get authentication token
+      const token = await getToken()
+      if (!token) {
+        throw new Error('Authentication required - please refresh the page')
       }
 
-      // Load chat history
-      const historyData = await makeAPIRequest(`chat/history/?limit=50${sessionId ? `&session_id=${sessionId}` : ''}`)
-      setMessages(historyData.messages.map((msg: any) => ({
-        id: msg.id,
-        sender_type: msg.sender_type,
-        content: msg.content,
-        timestamp: msg.timestamp,
-        status: 'processed',
-        metadata: msg.metadata
-      })))
+      // Create WebSocket connection
+      const ws = createAIAssistantWebSocket()
+      wsRef.current = ws
+
+      // Set up event listeners
+      ws.on('connection.established', () => {
+        console.log('WebSocket connected, authenticating...')
+        ws.authenticate(token)
+      })
+
+      ws.on('authentication.success', (data) => {
+        console.log('WebSocket authenticated successfully:', data)
+        setIsConnected(true)
+        // Load chat history
+        ws.getChatHistory(50)
+      })
+
+      ws.on('chat.history', (data) => {
+        console.log('Received chat history:', data)
+        setMessages(data.messages || [])
+      })
+
+      ws.on('chat.response', (data) => {
+        console.log('Received AI response:', data)
+        
+        // Add AI message
+        const aiMessage: ChatMessage = {
+          id: data.ai_message_id || Date.now().toString(),
+          sender_type: 'ai',
+          content: data.message,
+          timestamp: data.timestamp,
+          status: 'processed',
+          metadata: data.metadata
+        }
+        
+        setMessages(prev => [...prev, aiMessage])
+        setIsLoading(false)
+        setIsTyping(false)
+      })
+
+      ws.on('ai.typing', (data) => {
+        setIsTyping(data.status)
+      })
+
+      ws.on('action.feedback', (data) => {
+        const feedback: ActionFeedback = {
+          action_id: data.action_id || Date.now().toString(),
+          status: data.status || 'completed',
+          message: data.message || 'Action completed',
+          result: data.result
+        }
+        setActionFeedbacks(prev => [...prev, feedback])
+      })
+
+      ws.on('error', (data) => {
+        console.error('WebSocket error:', data)
+        const errorMessage: ChatMessage = {
+          id: Date.now().toString(),
+          sender_type: 'system',
+          content: `Error: ${data.error}`,
+          timestamp: new Date().toISOString(),
+          status: 'failed'
+        }
+        setMessages(prev => [...prev, errorMessage])
+        setIsLoading(false)
+        setIsTyping(false)
+      })
+
+      ws.on('connection.closed', () => {
+        console.log('WebSocket connection closed')
+        setIsConnected(false)
+      })
+
+      ws.on('connection.error', (data) => {
+        console.error('WebSocket connection error:', data)
+        setIsConnected(false)
+      })
+
+      // Connect to WebSocket
+      await ws.connect()
 
     } catch (error) {
       console.error('Error initializing chat:', error)
       setIsConnected(false)
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString(),
+        sender_type: 'system',
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to connect to AI Assistant'}`,
+        timestamp: new Date().toISOString(),
+        status: 'failed'
+      }
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
-  }, [user, sessionId, getToken, authLoading])
+  }, [user, getToken, authLoading])
 
-  // Send message to AI
+  // Send message via WebSocket
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading || !user) return
+    if (!inputMessage.trim() || isLoading || !user || !wsRef.current || !isConnected) return
 
     const messageContent = inputMessage.trim()
     setInputMessage("")
@@ -139,44 +168,9 @@ export function ChatInterface() {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      // Send message to API
-      const response = await makeAPIRequest('chat/send/', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: messageContent,
-          session_id: sessionId
-        })
-      })
-
-      if (response.success) {
-        // Add AI response to messages
-        const aiMessage: ChatMessage = {
-          id: response.ai_response.id,
-          sender_type: 'ai',
-          content: response.ai_response.content,
-          timestamp: response.ai_response.timestamp,
-          status: 'processed',
-          metadata: response.ai_response.metadata
-        }
-        setMessages(prev => [...prev, aiMessage])
-
-        // Handle any actions
-        if (response.actions && response.actions.length > 0) {
-          const newFeedbacks: ActionFeedback[] = response.actions.map((action: any) => ({
-            action_id: action.action_id || Date.now().toString(),
-            status: action.status || 'completed',
-            message: action.message || 'Action completed',
-            result: action.result
-          }))
-          setActionFeedbacks(prev => [...prev, ...newFeedbacks])
-        }
-
-        // Update session ID if provided
-        if (response.session_id) {
-          setSessionId(response.session_id)
-        }
-      }
-
+      // Send message via WebSocket
+      wsRef.current.sendMessage(messageContent)
+      
     } catch (error) {
       console.error('Error sending message:', error)
       
@@ -189,7 +183,6 @@ export function ChatInterface() {
         status: 'failed'
       }
       setMessages(prev => [...prev, errorMessage])
-    } finally {
       setIsLoading(false)
     }
   }
@@ -213,13 +206,23 @@ export function ChatInterface() {
     }
   }, [user, authLoading, initializeChat])
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.disconnect()
+        wsRef.current = null
+      }
+    }
+  }, [])
+
   const getConnectionStatusColor = () => {
     if (isLoading) return 'bg-yellow-500'
     return isConnected ? 'bg-green-500' : 'bg-red-500'
   }
 
   const getConnectionStatusText = () => {
-    if (isLoading) return 'Loading...'
+    if (isLoading) return 'Connecting...'
     return isConnected ? 'Connected' : 'Disconnected'
   }
 
@@ -333,8 +336,8 @@ export function ChatInterface() {
               </div>
             ))}
 
-            {/* Loading Indicator */}
-            {isLoading && (
+            {/* Typing Indicator */}
+            {isTyping && (
               <div className="flex justify-start">
                 <div className="flex items-start gap-2">
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -342,8 +345,12 @@ export function ChatInterface() {
                   </div>
                   <div className="bg-muted rounded-lg px-3 py-2">
                     <div className="flex items-center gap-1">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm text-muted-foreground">AI is thinking...</span>
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                      <span className="text-sm text-muted-foreground ml-2">AI is typing...</span>
                     </div>
                   </div>
                 </div>
