@@ -11,11 +11,12 @@ export async function middleware(request: NextRequest) {
     const supabase = createMiddlewareClient({ req: request, res })
 
     // Get session and refresh if needed
-    const { data: { session } } = await supabase.auth.getSession()
+    let { data: { session } } = await supabase.auth.getSession()
     
-    // If no session, try to refresh
+    // If no session, try to refresh and get the updated session
     if (!session) {
-      await supabase.auth.refreshSession()
+      const { data: { session: refreshedSession } } = await supabase.auth.refreshSession()
+      session = refreshedSession
     }
 
     // Protected dashboard routes
