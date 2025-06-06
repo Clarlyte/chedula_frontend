@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function CustomersPage() {
   return (
-    <section className="responsive-padding relative overflow-hidden">
+    <section className="mt-5 mb-5 responsive-container relative overflow-hidden">
       <div className="responsive-container relative z-10">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div className="space-y-2">

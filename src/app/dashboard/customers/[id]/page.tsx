@@ -21,7 +21,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
   };
 
   return (
-    <section className="responsive-padding relative overflow-hidden min-h-screen">
+    <section className="mt-5 mb-5 responsive-container relative overflow-hidden min-h-screen">
       <div className="responsive-container relative z-10">
         {/* Back Button */}
         <Link href="/dashboard/customers" className="inline-flex items-center text-muted-foreground hover:text-gold-400 mb-6 transition-colors">

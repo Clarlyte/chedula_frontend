@@ -49,10 +49,10 @@ export function Footer() {
             <h3 className="footer-heading">Legal</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/legal/privacy-policy" className="footer-link">Privacy Policy</Link>
+                <Link href="/privacy" className="footer-link">Privacy Policy</Link>
               </li>
               <li>
-                <Link href="/legal/terms-of-service" className="footer-link">Terms of Service</Link>
+                <Link href="/terms" className="footer-link">Terms of Service</Link>
               </li>
               <li>
                 <Link href="/legal/cookie-policy" className="footer-link">Cookie Policy</Link>
@@ -85,8 +85,8 @@ export function Footer() {
               © {new Date().getFullYear()} Rent n&apos; Snap. All rights reserved.
             </p>
             <div className="flex items-center justify-center sm:justify-end gap-6 w-full sm:w-auto">
-              <Link href="/legal/privacy-policy" className="footer-link">Privacy</Link>
-              <Link href="/legal/terms-of-service" className="footer-link">Terms</Link>
+              <Link href="/privacy" className="footer-link">Privacy</Link>
+              <Link href="/terms" className="footer-link">Terms</Link>
               <a href="#" className="footer-link">Contact</a>
             </div>
           </div>
