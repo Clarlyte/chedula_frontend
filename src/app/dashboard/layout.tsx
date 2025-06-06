@@ -26,7 +26,7 @@ export default function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background flex flex-col min-h-screen bg-black text-gold-400">
+    <div className="flex min-h-screen flex-col bg-background bg-black text-gold-400">
       {/* Temporarily hide header for simplicity while focusing on sidebar toggle */}
       {/* {user && <DashboardHeader user={user} />} */}
       <Navbar />
