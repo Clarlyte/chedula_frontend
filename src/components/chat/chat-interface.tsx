@@ -8,20 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/providers/auth-provider"
-import { useSupabase } from "@/components/providers/supabase-provider"
-
-interface ChatMessage {
-  id: string
-  sender_type: 'user' | 'ai' | 'system'
-  content: string
-  timestamp: string
-  status?: 'sent' | 'processing' | 'processed' | 'failed'
-  metadata?: {
-    processing_time_ms?: number
-    entities?: any[]
-    actions_count?: number
-  }
-}
+import { createAIAssistantWebSocket, type ChatMessage } from "@/lib/websocket"
 
 interface ActionFeedback {
   action_id: string
@@ -31,19 +18,16 @@ interface ActionFeedback {
 }
 
 export function ChatInterface() {
-  const { user } = useAuth()
-  const { supabase } = useSupabase()
+  const { user, getToken, authLoading } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputMessage, setInputMessage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected')
   const [actionFeedbacks, setActionFeedbacks] = useState<ActionFeedback[]>([])
   
-  const ws = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const wsRef = useRef<ReturnType<typeof createAIAssistantWebSocket> | null>(null)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -53,93 +37,45 @@ export function ChatInterface() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  const connectWebSocket = useCallback(async () => {
-    if (!user) return
+  // Initialize WebSocket connection
+  const initializeChat = useCallback(async () => {
+    if (!user || authLoading || wsRef.current) return
 
     try {
-      setConnectionStatus('connecting')
+      setIsLoading(true)
       
-      // Get WebSocket URL (adjust based on your backend URL)
-      const wsUrl = process.env.NODE_ENV === 'production' 
-        ? 'wss://your-backend-domain.com/ws/chat/'
-        : 'ws://localhost:8000/ws/chat/'
+      // Get authentication token
+      const token = await getToken()
+      if (!token) {
+        throw new Error('Authentication required - please refresh the page')
+      }
 
-      ws.current = new WebSocket(wsUrl)
+      // Create WebSocket connection
+      const ws = createAIAssistantWebSocket()
+      wsRef.current = ws
 
-      ws.current.onopen = () => {
-        console.log('WebSocket connected')
+      // Set up event listeners
+      ws.on('connection.established', () => {
+        console.log('WebSocket connected, authenticating...')
+        ws.authenticate(token)
+      })
+
+      ws.on('authentication.success', (data) => {
+        console.log('WebSocket authenticated successfully:', data)
         setIsConnected(true)
-        setConnectionStatus('connected')
-        
-        // Authenticate after connection
-        authenticateWebSocket()
-      }
-
-      ws.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          handleWebSocketMessage(data)
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error)
-        }
-      }
-
-      ws.current.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason)
-        setIsConnected(false)
-        setIsAuthenticated(false)
-        setConnectionStatus('disconnected')
-        
-        // Attempt to reconnect after 3 seconds
-        if (!event.wasClean) {
-          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
-        }
-      }
-
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error)
-        setConnectionStatus('error')
-      }
-
-    } catch (error) {
-      console.error('Error connecting to WebSocket:', error)
-      setConnectionStatus('error')
-    }
-  }, [user])
-
-  const authenticateWebSocket = async () => {
-    if (!ws.current || !user) return
-
-    try {
-      // Get current session token
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.access_token) {
-        ws.current.send(JSON.stringify({
-          type: 'authenticate',
-          token: session.access_token
-        }))
-      }
-    } catch (error) {
-      console.error('Error authenticating WebSocket:', error)
-    }
-  }
-
-  const handleWebSocketMessage = (data: any) => {
-    switch (data.type) {
-      case 'connection.established':
-        console.log('Connection established:', data.message)
-        break
-
-      case 'authentication.success':
-        console.log('Authentication successful')
-        setIsAuthenticated(true)
         // Load chat history
-        loadChatHistory()
-        break
+        ws.getChatHistory(50)
+      })
 
-      case 'chat.response':
-        // Add AI response to messages
+      ws.on('chat.history', (data) => {
+        console.log('Received chat history:', data)
+        setMessages(data.messages || [])
+      })
+
+      ws.on('chat.response', (data) => {
+        console.log('Received AI response:', data)
+        
+        // Add AI message
         const aiMessage: ChatMessage = {
           id: data.ai_message_id || Date.now().toString(),
           sender_type: 'ai',
@@ -148,65 +84,78 @@ export function ChatInterface() {
           status: 'processed',
           metadata: data.metadata
         }
+        
         setMessages(prev => [...prev, aiMessage])
+        setIsLoading(false)
         setIsTyping(false)
-        break
+      })
 
-      case 'ai.typing':
+      ws.on('ai.typing', (data) => {
         setIsTyping(data.status)
-        break
+      })
 
-      case 'action.feedback':
-        // Handle action feedback
+      ws.on('action.feedback', (data) => {
         const feedback: ActionFeedback = {
-          action_id: data.action_id,
-          status: data.status,
-          message: data.message,
+          action_id: data.action_id || Date.now().toString(),
+          status: data.status || 'completed',
+          message: data.message || 'Action completed',
           result: data.result
         }
         setActionFeedbacks(prev => [...prev, feedback])
-        break
+      })
 
-      case 'chat.history':
-        // Load historical messages
-        setMessages(data.messages.map((msg: any) => ({
-          id: msg.id.toString(),
-          sender_type: msg.sender_type,
-          content: msg.content,
-          timestamp: msg.timestamp,
-          status: msg.status,
-          metadata: msg.metadata
-        })))
-        break
+      ws.on('error', (data) => {
+        console.error('WebSocket error:', data)
+        const errorMessage: ChatMessage = {
+          id: Date.now().toString(),
+          sender_type: 'system',
+          content: `Error: ${data.error}`,
+          timestamp: new Date().toISOString(),
+          status: 'failed'
+        }
+        setMessages(prev => [...prev, errorMessage])
+        setIsLoading(false)
+        setIsTyping(false)
+      })
 
-      case 'error':
-        console.error('WebSocket error:', data.error)
-        // You could show a toast notification here
-        break
+      ws.on('connection.closed', () => {
+        console.log('WebSocket connection closed')
+        setIsConnected(false)
+      })
 
-      case 'pong':
-        // Handle keepalive response
-        break
+      ws.on('connection.error', (data) => {
+        console.error('WebSocket connection error:', data)
+        setIsConnected(false)
+      })
 
-      default:
-        console.log('Unknown message type:', data.type)
+      // Connect to WebSocket
+      await ws.connect()
+
+    } catch (error) {
+      console.error('Error initializing chat:', error)
+      setIsConnected(false)
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString(),
+        sender_type: 'system',
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to connect to AI Assistant'}`,
+        timestamp: new Date().toISOString(),
+        status: 'failed'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
     }
-  }
+  }, [user, getToken, authLoading])
 
-  const loadChatHistory = () => {
-    if (!ws.current || !isAuthenticated) return
-
-    ws.current.send(JSON.stringify({
-      type: 'get_history',
-      limit: 50
-    }))
-  }
-
+  // Send message via WebSocket
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !ws.current || !isAuthenticated) return
+    if (!inputMessage.trim() || isLoading || !user || !wsRef.current || !isConnected) return
 
     const messageContent = inputMessage.trim()
     setInputMessage("")
+    setIsLoading(true)
 
     // Add user message to UI immediately
     const userMessage: ChatMessage = {
@@ -218,11 +167,24 @@ export function ChatInterface() {
     }
     setMessages(prev => [...prev, userMessage])
 
-    // Send message via WebSocket
-    ws.current.send(JSON.stringify({
-      type: 'chat.message',
-      message: messageContent
-    }))
+    try {
+      // Send message via WebSocket
+      wsRef.current.sendMessage(messageContent)
+      
+    } catch (error) {
+      console.error('Error sending message:', error)
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender_type: 'system',
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`,
+        timestamp: new Date().toISOString(),
+        status: 'failed'
+      }
+      setMessages(prev => [...prev, errorMessage])
+      setIsLoading(false)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -232,39 +194,36 @@ export function ChatInterface() {
     }
   }
 
-  // Connect on component mount
+  // Initialize on mount
   useEffect(() => {
-    if (user) {
-      connectWebSocket()
+    if (user && !authLoading) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        initializeChat()
+      }, 100)
+      
+      return () => clearTimeout(timer)
     }
+  }, [user, authLoading, initializeChat])
 
-    // Cleanup on unmount
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-      }
-      if (ws.current) {
-        ws.current.close()
+      if (wsRef.current) {
+        wsRef.current.disconnect()
+        wsRef.current = null
       }
     }
-  }, [user, connectWebSocket])
+  }, [])
 
   const getConnectionStatusColor = () => {
-    switch (connectionStatus) {
-      case 'connected': return 'bg-green-500'
-      case 'connecting': return 'bg-yellow-500'
-      case 'error': return 'bg-red-500'
-      default: return 'bg-gray-500'
-    }
+    if (isLoading) return 'bg-yellow-500'
+    return isConnected ? 'bg-green-500' : 'bg-red-500'
   }
 
   const getConnectionStatusText = () => {
-    switch (connectionStatus) {
-      case 'connected': return isAuthenticated ? 'Connected' : 'Authenticating...'
-      case 'connecting': return 'Connecting...'
-      case 'error': return 'Connection Error'
-      default: return 'Disconnected'
-    }
+    if (isLoading) return 'Connecting...'
+    return isConnected ? 'Connected' : 'Disconnected'
   }
 
   const formatTimestamp = (timestamp: string) => {
@@ -278,7 +237,26 @@ export function ChatInterface() {
     return (
       <Card className="w-full h-[600px] flex items-center justify-center">
         <CardContent>
-          <p className="text-muted-foreground">Please sign in to use the AI Assistant</p>
+          <div className="text-center">
+            <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-muted-foreground">Please sign in to use the AI Assistant</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show loading state while auth is loading or initializing
+  if (authLoading || (user && isLoading && messages.length === 0)) {
+    return (
+      <Card className="w-full h-[600px] flex items-center justify-center">
+        <CardContent>
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
+            <p className="text-muted-foreground">
+              {authLoading ? 'Loading authentication...' : 'Connecting to AI Assistant...'}
+            </p>
+          </div>
         </CardContent>
       </Card>
     )
@@ -303,7 +281,7 @@ export function ChatInterface() {
         {/* Messages Area */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.length === 0 && isAuthenticated && (
+            {messages.length === 0 && isConnected && (
               <div className="text-center text-muted-foreground py-8">
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Hi! I'm your AI scheduling assistant.</p>
@@ -322,10 +300,14 @@ export function ChatInterface() {
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                     message.sender_type === 'user' 
                       ? 'bg-primary text-primary-foreground' 
+                      : message.sender_type === 'system'
+                      ? 'bg-red-100 text-red-600'
                       : 'bg-muted'
                   }`}>
                     {message.sender_type === 'user' ? (
                       <User className="h-4 w-4" />
+                    ) : message.sender_type === 'system' ? (
+                      <AlertCircle className="h-4 w-4" />
                     ) : (
                       <Bot className="h-4 w-4" />
                     )}
@@ -334,6 +316,8 @@ export function ChatInterface() {
                   <div className={`rounded-lg px-3 py-2 ${
                     message.sender_type === 'user'
                       ? 'bg-primary text-primary-foreground'
+                      : message.sender_type === 'system'
+                      ? 'bg-red-100 text-red-800'
                       : 'bg-muted'
                   }`}>
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -361,8 +345,12 @@ export function ChatInterface() {
                   </div>
                   <div className="bg-muted rounded-lg px-3 py-2">
                     <div className="flex items-center gap-1">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm text-muted-foreground">AI is typing...</span>
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                      <span className="text-sm text-muted-foreground ml-2">AI is typing...</span>
                     </div>
                   </div>
                 </div>
@@ -403,26 +391,38 @@ export function ChatInterface() {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={
-                isAuthenticated 
+                isConnected 
                   ? "Type your message... (e.g., 'Book Camera A for John next Monday')"
                   : "Connecting to AI Assistant..."
               }
-              disabled={!isAuthenticated}
+              disabled={!isConnected || isLoading}
               className="flex-1"
             />
             <Button 
               onClick={sendMessage}
-              disabled={!inputMessage.trim() || !isAuthenticated}
+              disabled={!inputMessage.trim() || !isConnected || isLoading}
               size="icon"
             >
-              <Send className="h-4 w-4" />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
           
-          {!isConnected && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Reconnecting to AI Assistant...
-            </p>
+          {!isConnected && !isLoading && (
+            <div className="mt-2">
+              <p className="text-xs text-red-600">
+                Failed to connect to AI Assistant.
+              </p>
+              <button 
+                onClick={() => initializeChat()}
+                className="text-xs text-blue-600 hover:underline mt-1"
+              >
+                Try again
+              </button>
+            </div>
           )}
         </div>
       </CardContent>
