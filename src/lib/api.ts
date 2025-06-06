@@ -18,6 +18,12 @@ export const api = axios.create({
 // Add request interceptor for authentication
 api.interceptors.request.use(async (config) => {
   try {
+    // Skip adding Authorization header for verify endpoint
+    // because it expects the token in the request body
+    if (config.url?.includes('/users/auth/verify/')) {
+      return config;
+    }
+    
     // Get the current session from Supabase
     const { data: { session }, error } = await supabase.auth.getSession();
     
