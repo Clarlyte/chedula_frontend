@@ -31,9 +31,9 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
 
         {/* Customer Info Card */}
         <div className="bg-background/50 backdrop-blur-sm shadow-lg rounded-lg p-6 mb-6 border border-gold-500/20">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gold-400">{customer.firstName} {customer.lastName}</h1>
+              <h1 className="text-2xl font-bold text-gold-400 text-balance">{customer.firstName} {customer.lastName}</h1>
               <div className="mt-2 flex flex-col sm:flex-row gap-4 text-muted-foreground">
                 <div className="flex items-center">
                   <Mail className="h-5 w-5 mr-2 text-gold-400" />
@@ -45,8 +45,8 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
                 </div>
               </div>
             </div>
-            <div className="mt-4 sm:mt-0">
-              <Button className="gold-gradient hover:opacity-90 transition-opacity">
+            <div className="mt-4 sm:mt-0 w-full sm:w-auto">
+              <Button className="gold-gradient hover:opacity-90 transition-opacity w-full sm:w-auto">
                 Edit Customer
               </Button>
             </div>
@@ -54,7 +54,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
           {customer.notes && (
             <div>
               <h2 className="text-xl font-semibold text-gold-400 mb-2">Notes</h2>
-              <p className="text-muted-foreground">{customer.notes}</p>
+              <p className="text-muted-foreground text-balance">{customer.notes}</p>
             </div>
           )}
         </div>
@@ -65,15 +65,15 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
           <div className="space-y-4">
             {customer.bookings.map((booking) => (
               <div key={booking.id} className="border border-gold-500/20 rounded-lg p-4 hover:bg-gold-500/10 transition-colors">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h3 className="font-medium text-gold-400">{booking.service}</h3>
+                    <h3 className="font-medium text-gold-400 text-balance">{booking.service}</h3>
                     <div className="mt-1 flex items-center text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2 text-gold-400" />
-                      <span>{booking.date} - {booking.time}</span>
+                      <span className="text-balance">{booking.date} - {booking.time}</span>
                     </div>
                   </div>
-                  <div className="mt-2 sm:mt-0">
+                  <div className="mt-2 sm:mt-0 flex-shrink-0">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${booking.status === 'Completed' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
                       {booking.status}
                     </span>

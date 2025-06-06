@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 export default function NewCustomerPage() {
   return (
     <section className="responsive-padding relative overflow-hidden min-h-screen">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gold-900/20 via-background to-background"></div>
       <div className="responsive-container relative z-10">
         {/* Back Button */}
         <Link href="/dashboard/customers" className="inline-flex items-center text-muted-foreground hover:text-gold-400 mb-6 transition-colors">
@@ -87,21 +88,21 @@ export default function NewCustomerPage() {
               />
             </div>
 
-            <div className="flex justify-end space-x-4">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-4">
               <Link
                 href="/dashboard/customers"
                 passHref
               >
                 <Button
                   variant="outline"
-                  className="border-gold-500/30 hover:border-gold-500/80 hover:bg-gold-500/10"
+                  className="border-gold-500/30 hover:border-gold-500/80 hover:bg-gold-500/10 w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
               </Link>
               <Button
                 type="submit"
-                className="gold-gradient hover:opacity-90 transition-opacity"
+                className="gold-gradient hover:opacity-90 transition-opacity w-full sm:w-auto"
               >
                 Save Customer
               </Button>
