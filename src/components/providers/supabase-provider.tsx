@@ -1,14 +1,12 @@
 "use client"
 
 import type React from "react"
-
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
-import { createContext, useContext, useEffect } from "react"
+import { createContext, useContext } from "react"
+import { getSupabaseClient } from "@/lib/auth"
 import type { Database } from "@/types/supabase"
 
 type SupabaseContext = {
-  supabase: ReturnType<typeof createClientComponentClient<Database>>
+  supabase: ReturnType<typeof getSupabaseClient>
 }
 
 const Context = createContext<SupabaseContext | undefined>(undefined)
@@ -18,20 +16,8 @@ export function SupabaseProvider({
 }: {
   children: React.ReactNode
 }) {
-  const router = useRouter()
-  const supabase = createClientComponentClient<Database>()
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      router.refresh()
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [router, supabase])
+  // Use the singleton client from our auth utility
+  const supabase = getSupabaseClient()
 
   return (
     <Context.Provider value={{ supabase }}>

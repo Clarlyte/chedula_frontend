@@ -10,8 +10,13 @@ export async function middleware(request: NextRequest) {
     // Create a Supabase client configured to use cookies
     const supabase = createMiddlewareClient({ req: request, res })
 
-    // Refresh session if expired - required for Server Components
+    // Get session and refresh if needed
     const { data: { session } } = await supabase.auth.getSession()
+    
+    // If no session, try to refresh
+    if (!session) {
+      await supabase.auth.refreshSession()
+    }
 
     // Protected dashboard routes
     if (pathname.startsWith('/dashboard')) {
