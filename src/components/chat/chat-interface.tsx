@@ -31,19 +31,15 @@ interface ActionFeedback {
 }
 
 export function ChatInterface() {
-  const { user } = useAuth()
-  const { supabase } = useSupabase()
+  const { user, getToken, authLoading } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputMessage, setInputMessage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected')
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [actionFeedbacks, setActionFeedbacks] = useState<ActionFeedback[]>([])
   
-  const ws = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -53,160 +49,84 @@ export function ChatInterface() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  const connectWebSocket = useCallback(async () => {
-    if (!user) return
+  // API helper function with improved error handling
+  const makeAPIRequest = async (endpoint: string, options: RequestInit = {}) => {
+    try {
+      const token = await getToken()
+      
+      if (!token) {
+        throw new Error('Authentication required - please refresh the page')
+      }
+
+      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://your-backend-domain.com' : 'http://localhost:8000'}/api/v1/ai/${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers,
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('API request failed:', error)
+      throw error
+    }
+  }
+
+  // Initialize connection and load chat history
+  const initializeChat = useCallback(async () => {
+    if (!user || authLoading) return
 
     try {
-      setConnectionStatus('connecting')
+      setIsLoading(true)
       
-      // Get WebSocket URL (adjust based on your backend URL)
-      const wsUrl = process.env.NODE_ENV === 'production' 
-        ? 'wss://your-backend-domain.com/ws/chat/'
-        : 'ws://localhost:8000/ws/chat/'
+      // Wait a bit for Supabase session to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Test connection
+      await makeAPIRequest('test/')
+      setIsConnected(true)
 
-      ws.current = new WebSocket(wsUrl)
-
-      ws.current.onopen = () => {
-        console.log('WebSocket connected')
-        setIsConnected(true)
-        setConnectionStatus('connected')
-        
-        // Authenticate after connection
-        authenticateWebSocket()
+      // Create or get session
+      if (!sessionId) {
+        const sessionData = await makeAPIRequest('chat/session/', {
+          method: 'POST'
+        })
+        setSessionId(sessionData.session_id)
       }
 
-      ws.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          handleWebSocketMessage(data)
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error)
-        }
-      }
-
-      ws.current.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason)
-        setIsConnected(false)
-        setIsAuthenticated(false)
-        setConnectionStatus('disconnected')
-        
-        // Attempt to reconnect after 3 seconds
-        if (!event.wasClean) {
-          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
-        }
-      }
-
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error)
-        setConnectionStatus('error')
-      }
+      // Load chat history
+      const historyData = await makeAPIRequest(`chat/history/?limit=50${sessionId ? `&session_id=${sessionId}` : ''}`)
+      setMessages(historyData.messages.map((msg: any) => ({
+        id: msg.id,
+        sender_type: msg.sender_type,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        status: 'processed',
+        metadata: msg.metadata
+      })))
 
     } catch (error) {
-      console.error('Error connecting to WebSocket:', error)
-      setConnectionStatus('error')
+      console.error('Error initializing chat:', error)
+      setIsConnected(false)
+    } finally {
+      setIsLoading(false)
     }
-  }, [user])
+  }, [user, sessionId, getToken, authLoading])
 
-  const authenticateWebSocket = async () => {
-    if (!ws.current || !user) return
-
-    try {
-      // Get current session token
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.access_token) {
-        ws.current.send(JSON.stringify({
-          type: 'authenticate',
-          token: session.access_token
-        }))
-      }
-    } catch (error) {
-      console.error('Error authenticating WebSocket:', error)
-    }
-  }
-
-  const handleWebSocketMessage = (data: any) => {
-    switch (data.type) {
-      case 'connection.established':
-        console.log('Connection established:', data.message)
-        break
-
-      case 'authentication.success':
-        console.log('Authentication successful')
-        setIsAuthenticated(true)
-        // Load chat history
-        loadChatHistory()
-        break
-
-      case 'chat.response':
-        // Add AI response to messages
-        const aiMessage: ChatMessage = {
-          id: data.ai_message_id || Date.now().toString(),
-          sender_type: 'ai',
-          content: data.message,
-          timestamp: data.timestamp,
-          status: 'processed',
-          metadata: data.metadata
-        }
-        setMessages(prev => [...prev, aiMessage])
-        setIsTyping(false)
-        break
-
-      case 'ai.typing':
-        setIsTyping(data.status)
-        break
-
-      case 'action.feedback':
-        // Handle action feedback
-        const feedback: ActionFeedback = {
-          action_id: data.action_id,
-          status: data.status,
-          message: data.message,
-          result: data.result
-        }
-        setActionFeedbacks(prev => [...prev, feedback])
-        break
-
-      case 'chat.history':
-        // Load historical messages
-        setMessages(data.messages.map((msg: any) => ({
-          id: msg.id.toString(),
-          sender_type: msg.sender_type,
-          content: msg.content,
-          timestamp: msg.timestamp,
-          status: msg.status,
-          metadata: msg.metadata
-        })))
-        break
-
-      case 'error':
-        console.error('WebSocket error:', data.error)
-        // You could show a toast notification here
-        break
-
-      case 'pong':
-        // Handle keepalive response
-        break
-
-      default:
-        console.log('Unknown message type:', data.type)
-    }
-  }
-
-  const loadChatHistory = () => {
-    if (!ws.current || !isAuthenticated) return
-
-    ws.current.send(JSON.stringify({
-      type: 'get_history',
-      limit: 50
-    }))
-  }
-
+  // Send message to AI
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !ws.current || !isAuthenticated) return
+    if (!inputMessage.trim() || isLoading || !user) return
 
     const messageContent = inputMessage.trim()
     setInputMessage("")
+    setIsLoading(true)
 
     // Add user message to UI immediately
     const userMessage: ChatMessage = {
@@ -218,11 +138,60 @@ export function ChatInterface() {
     }
     setMessages(prev => [...prev, userMessage])
 
-    // Send message via WebSocket
-    ws.current.send(JSON.stringify({
-      type: 'chat.message',
-      message: messageContent
-    }))
+    try {
+      // Send message to API
+      const response = await makeAPIRequest('chat/send/', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: messageContent,
+          session_id: sessionId
+        })
+      })
+
+      if (response.success) {
+        // Add AI response to messages
+        const aiMessage: ChatMessage = {
+          id: response.ai_response.id,
+          sender_type: 'ai',
+          content: response.ai_response.content,
+          timestamp: response.ai_response.timestamp,
+          status: 'processed',
+          metadata: response.ai_response.metadata
+        }
+        setMessages(prev => [...prev, aiMessage])
+
+        // Handle any actions
+        if (response.actions && response.actions.length > 0) {
+          const newFeedbacks: ActionFeedback[] = response.actions.map((action: any) => ({
+            action_id: action.action_id || Date.now().toString(),
+            status: action.status || 'completed',
+            message: action.message || 'Action completed',
+            result: action.result
+          }))
+          setActionFeedbacks(prev => [...prev, ...newFeedbacks])
+        }
+
+        // Update session ID if provided
+        if (response.session_id) {
+          setSessionId(response.session_id)
+        }
+      }
+
+    } catch (error) {
+      console.error('Error sending message:', error)
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender_type: 'system',
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`,
+        timestamp: new Date().toISOString(),
+        status: 'failed'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -232,39 +201,26 @@ export function ChatInterface() {
     }
   }
 
-  // Connect on component mount
+  // Initialize on mount
   useEffect(() => {
-    if (user) {
-      connectWebSocket()
+    if (user && !authLoading) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        initializeChat()
+      }, 100)
+      
+      return () => clearTimeout(timer)
     }
-
-    // Cleanup on unmount
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-      }
-      if (ws.current) {
-        ws.current.close()
-      }
-    }
-  }, [user, connectWebSocket])
+  }, [user, authLoading, initializeChat])
 
   const getConnectionStatusColor = () => {
-    switch (connectionStatus) {
-      case 'connected': return 'bg-green-500'
-      case 'connecting': return 'bg-yellow-500'
-      case 'error': return 'bg-red-500'
-      default: return 'bg-gray-500'
-    }
+    if (isLoading) return 'bg-yellow-500'
+    return isConnected ? 'bg-green-500' : 'bg-red-500'
   }
 
   const getConnectionStatusText = () => {
-    switch (connectionStatus) {
-      case 'connected': return isAuthenticated ? 'Connected' : 'Authenticating...'
-      case 'connecting': return 'Connecting...'
-      case 'error': return 'Connection Error'
-      default: return 'Disconnected'
-    }
+    if (isLoading) return 'Loading...'
+    return isConnected ? 'Connected' : 'Disconnected'
   }
 
   const formatTimestamp = (timestamp: string) => {
@@ -278,7 +234,26 @@ export function ChatInterface() {
     return (
       <Card className="w-full h-[600px] flex items-center justify-center">
         <CardContent>
-          <p className="text-muted-foreground">Please sign in to use the AI Assistant</p>
+          <div className="text-center">
+            <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-muted-foreground">Please sign in to use the AI Assistant</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show loading state while auth is loading or initializing
+  if (authLoading || (user && isLoading && messages.length === 0)) {
+    return (
+      <Card className="w-full h-[600px] flex items-center justify-center">
+        <CardContent>
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
+            <p className="text-muted-foreground">
+              {authLoading ? 'Loading authentication...' : 'Connecting to AI Assistant...'}
+            </p>
+          </div>
         </CardContent>
       </Card>
     )
@@ -303,7 +278,7 @@ export function ChatInterface() {
         {/* Messages Area */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.length === 0 && isAuthenticated && (
+            {messages.length === 0 && isConnected && (
               <div className="text-center text-muted-foreground py-8">
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Hi! I'm your AI scheduling assistant.</p>
@@ -322,10 +297,14 @@ export function ChatInterface() {
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                     message.sender_type === 'user' 
                       ? 'bg-primary text-primary-foreground' 
+                      : message.sender_type === 'system'
+                      ? 'bg-red-100 text-red-600'
                       : 'bg-muted'
                   }`}>
                     {message.sender_type === 'user' ? (
                       <User className="h-4 w-4" />
+                    ) : message.sender_type === 'system' ? (
+                      <AlertCircle className="h-4 w-4" />
                     ) : (
                       <Bot className="h-4 w-4" />
                     )}
@@ -334,6 +313,8 @@ export function ChatInterface() {
                   <div className={`rounded-lg px-3 py-2 ${
                     message.sender_type === 'user'
                       ? 'bg-primary text-primary-foreground'
+                      : message.sender_type === 'system'
+                      ? 'bg-red-100 text-red-800'
                       : 'bg-muted'
                   }`}>
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -352,8 +333,8 @@ export function ChatInterface() {
               </div>
             ))}
 
-            {/* Typing Indicator */}
-            {isTyping && (
+            {/* Loading Indicator */}
+            {isLoading && (
               <div className="flex justify-start">
                 <div className="flex items-start gap-2">
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -362,7 +343,7 @@ export function ChatInterface() {
                   <div className="bg-muted rounded-lg px-3 py-2">
                     <div className="flex items-center gap-1">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm text-muted-foreground">AI is typing...</span>
+                      <span className="text-sm text-muted-foreground">AI is thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -403,26 +384,38 @@ export function ChatInterface() {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={
-                isAuthenticated 
+                isConnected 
                   ? "Type your message... (e.g., 'Book Camera A for John next Monday')"
                   : "Connecting to AI Assistant..."
               }
-              disabled={!isAuthenticated}
+              disabled={!isConnected || isLoading}
               className="flex-1"
             />
             <Button 
               onClick={sendMessage}
-              disabled={!inputMessage.trim() || !isAuthenticated}
+              disabled={!inputMessage.trim() || !isConnected || isLoading}
               size="icon"
             >
-              <Send className="h-4 w-4" />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
           
-          {!isConnected && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Reconnecting to AI Assistant...
-            </p>
+          {!isConnected && !isLoading && (
+            <div className="mt-2">
+              <p className="text-xs text-red-600">
+                Failed to connect to AI Assistant.
+              </p>
+              <button 
+                onClick={() => initializeChat()}
+                className="text-xs text-blue-600 hover:underline mt-1"
+              >
+                Try again
+              </button>
+            </div>
           )}
         </div>
       </CardContent>
