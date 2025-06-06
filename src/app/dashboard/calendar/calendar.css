@@ -1,0 +1,89 @@
+.calendar-container {
+  --fc-border-color: rgba(234, 179, 8, 0.2);
+  --fc-button-text-color: #EAB308;
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: rgba(234, 179, 8, 0.3);
+  --fc-button-hover-bg-color: rgba(234, 179, 8, 0.1);
+  --fc-button-hover-border-color: rgba(234, 179, 8, 0.5);
+  --fc-button-active-bg-color: rgba(234, 179, 8, 0.2);
+  --fc-button-active-border-color: rgba(234, 179, 8, 0.5);
+  --fc-today-bg-color: rgba(234, 179, 8, 0.1);
+  --fc-neutral-bg-color: transparent;
+  --fc-list-event-hover-bg-color: rgba(234, 179, 8, 0.1);
+  --fc-highlight-color: rgba(234, 179, 8, 0.1);
+  --fc-event-bg-color: #EAB308;
+  --fc-event-border-color: #EAB308;
+  --fc-event-text-color: #000;
+  --fc-page-bg-color: transparent;
+  --fc-neutral-text-color: #EAB308;
+  --fc-more-link-bg-color: transparent;
+  --fc-more-link-text-color: #EAB308;
+}
+
+.calendar-container .fc {
+  background: transparent;
+  color: #EAB308;
+}
+
+.calendar-container .fc-toolbar-title {
+  color: #EAB308;
+  font-weight: 600;
+}
+
+.calendar-container .fc-col-header-cell {
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.calendar-container .fc-col-header-cell-cushion {
+  color: #EAB308;
+  text-decoration: none;
+}
+
+.calendar-container .fc-daygrid-day-number {
+  color: #EAB308;
+  text-decoration: none;
+}
+
+.calendar-container .fc-timegrid-slot-label {
+  color: #EAB308;
+}
+
+.calendar-container .fc-timegrid-slot {
+  border-color: rgba(234, 179, 8, 0.2);
+}
+
+.calendar-container .fc-timegrid-axis {
+  color: #EAB308;
+}
+
+.calendar-container .fc-timegrid-axis-cushion {
+  color: #EAB308;
+  text-decoration: none;
+}
+
+.calendar-container .fc-event {
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.calendar-container .fc-event:hover {
+  filter: brightness(1.1);
+}
+
+.calendar-container .fc-day-today {
+  background: rgba(234, 179, 8, 0.1) !important;
+}
+
+.calendar-container .fc-button {
+  text-transform: capitalize;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+}
+
+.calendar-container .fc-button-primary:not(:disabled).fc-button-active,
+.calendar-container .fc-button-primary:not(:disabled):active {
+  background-color: rgba(234, 179, 8, 0.2);
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #EAB308;
+} 
