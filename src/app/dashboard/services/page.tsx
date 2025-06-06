@@ -12,7 +12,6 @@ export const metadata: Metadata = {
 export default function ServicesPage() {
   return (
     <section className="responsive-padding relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gold-900/20 via-background to-background"></div>
       <div className="responsive-container relative z-10">
         <div className="flex justify-between items-center mb-8">
           <div className="space-y-2">

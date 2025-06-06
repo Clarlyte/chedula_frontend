@@ -22,7 +22,6 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
 
   return (
     <section className="responsive-padding relative overflow-hidden min-h-screen">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gold-900/20 via-background to-background"></div>
       <div className="responsive-container relative z-10">
         {/* Back Button */}
         <Link href="/dashboard/customers" className="inline-flex items-center text-muted-foreground hover:text-gold-400 mb-6 transition-colors">
