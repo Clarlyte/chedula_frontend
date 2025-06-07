@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icons } from "@/components/icons"
 import { cn } from "@/lib/utils"
-import { authHelpers, userService } from "@/lib/api"
+import { authHelpers } from "@/lib/auth"
+import { userService } from "@/lib/api"
 
 interface UserRegisterFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -62,7 +63,7 @@ export function UserRegisterForm({ className, ...props }: UserRegisterFormProps)
       if (data.session) {
         try {
           // Verify token with backend to create initial profile
-          const { data: verifyData, error: verifyError } = await authHelpers.verifyToken(
+          const { data: verifyData, error: verifyError } = await userService.verifyToken(
             data.session.access_token
           )
 

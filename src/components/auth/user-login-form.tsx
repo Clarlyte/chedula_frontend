@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icons } from "@/components/icons"
 import { cn } from "@/lib/utils"
-import { authHelpers, userService } from "@/lib/api"
+import { authHelpers } from "@/lib/auth"
+import { userService } from "@/lib/api"
 
 interface UserLoginFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -29,7 +30,7 @@ export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
     const password = formData.get("password") as string
 
     try {
-      // Sign in with Supabase
+      // Sign in with Supabase using centralized auth
       const { data, error: signInError } = await authHelpers.signIn(email, password)
 
       if (signInError) {
@@ -43,7 +44,7 @@ export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
       }
 
       // Verify token with backend
-      const { data: verifyData, error: verifyError } = await authHelpers.verifyToken(
+      const { data: verifyData, error: verifyError } = await userService.verifyToken(
         data.session.access_token
       )
 

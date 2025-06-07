@@ -1,13 +1,13 @@
 /**
  * Centralized Authentication Utility
- * Industry standard implementation with proper session management
+ * Single source of truth for all Supabase authentication
  */
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
-// Singleton pattern for client
+// SINGLE Supabase client instance - this is the only one that should exist
 let supabaseClient: ReturnType<typeof createClientComponentClient<Database>> | null = null
 
 export function getSupabaseClient() {
@@ -25,11 +25,10 @@ interface SessionCache {
 }
 
 let sessionCache: SessionCache | null = null
-const SESSION_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const SESSION_CACHE_TTL = 2 * 60 * 1000 // 2 minutes (reduced from 5)
 
 /**
  * Get current session with intelligent caching
- * Industry standard: Minimize API calls, implement proper caching
  */
 export async function getCurrentSession(): Promise<Session | null> {
   const supabase = getSupabaseClient()
@@ -45,7 +44,6 @@ export async function getCurrentSession(): Promise<Session | null> {
     
     if (error) {
       console.warn('Session retrieval error:', error)
-      // Clear cache on error
       sessionCache = null
       return null
     }
@@ -67,20 +65,17 @@ export async function getCurrentSession(): Promise<Session | null> {
 
 /**
  * Get authentication token with retry logic
- * Industry standard: Implement exponential backoff and token refresh
  */
 export async function getAuthToken(): Promise<string | null> {
-  const MAX_RETRY_ATTEMPTS = 3
-  const RETRY_DELAY = 1000 // 1 second base delay
+  const MAX_RETRY_ATTEMPTS = 2 // Reduced from 3
+  const RETRY_DELAY = 500 // Reduced from 1000
   
   for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
     try {
-      // First, try to get current session
       let session = await getCurrentSession()
       
       // If no session or token is expired, try refresh
       if (!session || isTokenExpiringSoon(session)) {
-        console.log(`Attempt ${attempt}: Refreshing session...`)
         session = await refreshSession()
       }
       
@@ -90,8 +85,7 @@ export async function getAuthToken(): Promise<string | null> {
       
       // If we still don't have a token, wait and retry
       if (attempt < MAX_RETRY_ATTEMPTS) {
-        const delay = RETRY_DELAY * Math.pow(2, attempt - 1) // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
       }
       
     } catch (error) {
@@ -117,7 +111,6 @@ async function refreshSession(): Promise<Session | null> {
     
     if (error) {
       console.warn('Session refresh failed:', error.message)
-      // Clear cache on refresh failure
       sessionCache = null
       return null
     }
@@ -186,12 +179,19 @@ export interface AuthState {
 }
 
 /**
- * Auth event listener for real-time updates
+ * Auth event listener for real-time updates - SINGLE LISTENER
  */
+let authSubscription: any = null
+
 export function onAuthStateChange(callback: (authState: AuthState) => void) {
   const supabase = getSupabaseClient()
   
-  return supabase.auth.onAuthStateChange(async (event, session) => {
+  // Remove existing listener to prevent duplicates
+  if (authSubscription) {
+    authSubscription.unsubscribe()
+  }
+  
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
     // Update cache
     if (session) {
       sessionCache = {
@@ -211,4 +211,67 @@ export function onAuthStateChange(callback: (authState: AuthState) => void) {
       error: null
     })
   })
+  
+  // Store the subscription for cleanup
+  authSubscription = subscription
+  
+  return { data: { subscription } }
+}
+
+// Authentication helper functions - consolidated
+export const authHelpers = {
+  // Sign up with email and password
+  signUp: async (email: string, password: string, metadata?: any) => {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: metadata,
+      },
+    })
+    return { data, error }
+  },
+
+  // Sign in with email and password
+  signIn: async (email: string, password: string) => {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    return { data, error }
+  },
+
+  // Sign out
+  signOut: async () => {
+    const supabase = getSupabaseClient()
+    clearSessionCache()
+    const { error } = await supabase.auth.signOut()
+    return { error }
+  },
+
+  // Reset password
+  resetPassword: async (email: string) => {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    return { data, error }
+  },
+
+  // Update password
+  updatePassword: async (password: string) => {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.auth.updateUser({
+      password,
+    })
+    return { data, error }
+  },
+
+  // Get current session
+  getSession: async () => {
+    const session = await getCurrentSession()
+    return { session, error: null }
+  },
 } 

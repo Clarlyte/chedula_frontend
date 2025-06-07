@@ -2,7 +2,6 @@ import './globals.css'
 import "@/app/globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { SupabaseProvider } from "@/components/providers/supabase-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import type { Metadata } from "next";
 import Script from "next/script";
@@ -29,13 +28,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} min-h-screen bg-background antialiased`}>
-        <SupabaseProvider>
-          <AuthProvider>
-            <ThemeProvider>
-              {children}
-            </ThemeProvider>
-          </AuthProvider>
-        </SupabaseProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

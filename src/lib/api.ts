@@ -1,12 +1,7 @@
 import axios from 'axios';
-import { createClient } from '@supabase/supabase-js';
+import { getAuthToken } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-// Initialize Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -15,25 +10,24 @@ export const api = axios.create({
   },
 });
 
-// Add request interceptor for authentication
+// Add request interceptor for authentication using centralized auth
 api.interceptors.request.use(async (config) => {
   try {
     // Skip adding Authorization header for verify endpoint
-    // because it expects the token in the request body
     if (config.url?.includes('/users/auth/verify/')) {
       return config;
     }
     
-    // Get the current session from Supabase
-    const { data: { session }, error } = await supabase.auth.getSession();
+    // Get token from centralized auth system
+    const token = await getAuthToken();
     
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     
     return config;
   } catch (error) {
-    console.error('Error getting session:', error);
+    console.error('Error getting auth token for API request:', error);
     return config;
   }
 });
@@ -43,11 +37,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      const { error: signOutError } = await supabase.auth.signOut();
-      if (!signOutError) {
-        window.location.href = '/login';
-      }
+      // Handle unauthorized access - redirect to login
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -64,7 +55,7 @@ export const endpoints = {
     businessTypes: '/users/business-types/',
   },
   
-  // Authentication (Supabase integration)
+  // Authentication (Backend verification)
   auth: {
     verify: '/users/auth/verify/',
     refresh: '/users/auth/refresh/',
@@ -105,73 +96,6 @@ export const endpoints = {
     get: (id: string) => `/services/${id}/`,
     update: (id: string) => `/services/${id}/`,
     delete: (id: string) => `/services/${id}/`,
-  },
-};
-
-// Authentication helper functions
-export const authHelpers = {
-  // Sign up with email and password
-  signUp: async (email: string, password: string, metadata?: any) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: metadata,
-      },
-    });
-    return { data, error };
-  },
-
-  // Sign in with email and password
-  signIn: async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
-  },
-
-  // Sign out
-  signOut: async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  },
-
-  // Reset password
-  resetPassword: async (email: string) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    return { data, error };
-  },
-
-  // Update password
-  updatePassword: async (password: string) => {
-    const { data, error } = await supabase.auth.updateUser({
-      password,
-    });
-    return { data, error };
-  },
-
-  // Get current session
-  getSession: async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    return { session, error };
-  },
-
-  // Verify token with backend
-  verifyToken: async (token: string) => {
-    try {
-      const response = await api.post(endpoints.auth.verify, { token });
-      return { data: response.data, error: null };
-    } catch (error: any) {
-      return { data: null, error: error.response?.data || error.message };
-    }
-  },
-
-  // Listen to auth state changes
-  onAuthStateChange: (callback: (event: string, session: any) => void) => {
-    return supabase.auth.onAuthStateChange(callback);
   },
 };
 
@@ -221,6 +145,16 @@ export const userService = {
   getBusinessTypes: async () => {
     try {
       const response = await api.get(endpoints.users.businessTypes);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { data: null, error: error.response?.data || error.message };
+    }
+  },
+
+  // Verify token with backend
+  verifyToken: async (token: string) => {
+    try {
+      const response = await api.post(endpoints.auth.verify, { token });
       return { data: response.data, error: null };
     } catch (error: any) {
       return { data: null, error: error.response?.data || error.message };

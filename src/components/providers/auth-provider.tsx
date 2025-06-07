@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
 import { 
@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(true)
   const router = useRouter()
+  const initialized = useRef(false)
 
   // Use the centralized auth utility
   const getToken = async (): Promise<string | null> => {
@@ -42,6 +43,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initialized.current) return
+    initialized.current = true
+
     // Initialize auth state
     const initializeAuth = async () => {
       try {
@@ -58,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth()
 
-    // Listen for auth state changes
+    // Listen for auth state changes - SINGLE LISTENER
     const { data: { subscription } } = onAuthStateChange((authState: AuthState) => {
       console.log('Auth state change:', {
         event: 'AUTH_STATE_CHANGE',
@@ -79,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       subscription.unsubscribe()
+      initialized.current = false
     }
   }, [router])
 
