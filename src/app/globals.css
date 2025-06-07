@@ -230,3 +230,25 @@
   background: hsl(var(--primary));
 }
 
+/* Section scroll margin */
+[id] {
+  scroll-margin-top: 100px; /* Match the headerOffset in useSmoothScroll */
+  scroll-behavior: smooth;
+}
+
+/* Smooth page transitions */
+.page-transition {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
