@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-black text-gold-400">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 page-transition">
         <Hero />
         <Features />
         <HowItWorks />
