@@ -7,6 +7,7 @@ import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Menu } from 'lucide-react';
+import { Navbar } from '@/components/common/navbar';
 
 // Note: createServerComponentClient and cookies() can only be used in Server Components.
 // We will need to rethink how user session is handled in a client component layout.
@@ -25,9 +26,10 @@ export default function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background bg-black text-gold-400">
       {/* Temporarily hide header for simplicity while focusing on sidebar toggle */}
       {/* {user && <DashboardHeader user={user} />} */}
+      <Navbar />
 
       {/* Mobile Menu Toggle Button (visible on small screens) */}
       <div className="md:hidden fixed top-4 left-4 z-50">
