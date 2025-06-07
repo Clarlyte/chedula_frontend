@@ -15,7 +15,7 @@ export function AdditionalInfoStep({ form, isLoading }: AdditionalInfoStepProps)
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="business_description" className="text-base font-medium">Business Description</Label>
-            <span className="text-sm text-muted-foreground">Optional</span>
+            <span className="text-sm text-red-500">Required</span>
           </div>
           <p className="text-sm text-muted-foreground">
             Help customers understand your business better by providing a detailed description of your services and unique selling points.

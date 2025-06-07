@@ -21,7 +21,7 @@ const formSchema = z.object({
   phone_number: z.string().min(10, "Phone number must be at least 10 digits"),
   business_address: z.string().min(5, "Address must be at least 5 characters"),
   business_type: z.string(),
-  business_description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  business_description: z.string().min(10, "Business description must be at least 10 characters").max(500, "Description must be less than 500 characters"),
   website_url: z.string().url("Invalid URL").optional().or(z.literal("")),
 })
 
@@ -99,7 +99,7 @@ export function OnboardingForm() {
       case 1:
         return ['contact_email', 'phone_number', 'business_address']
       case 2:
-        return ['business_description', 'website_url']
+        return ['business_description'] // Business description is now required
       default:
         return []
     }
@@ -122,7 +122,7 @@ export function OnboardingForm() {
         throw new Error(onboardingError.message || "Failed to complete onboarding")
       }
 
-      router.push("/dashboard")
+      router.push("/dashboard/chat")
       router.refresh()
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred")
@@ -178,7 +178,7 @@ export function OnboardingForm() {
               <Button
                 type="button"
                 onClick={nextStep}
-                disabled={isLoading || !form.formState.dirtyFields[getFieldsForStep(currentStep)[0]]}
+                disabled={isLoading}
                 className="ml-auto"
               >
                 Next
@@ -187,7 +187,7 @@ export function OnboardingForm() {
             ) : (
               <Button
                 type="submit"
-                disabled={isLoading || !form.formState.isValid}
+                disabled={isLoading}
                 className="ml-auto"
               >
                 {isLoading && (

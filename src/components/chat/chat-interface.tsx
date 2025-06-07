@@ -192,27 +192,6 @@ export function ChatInterface({ onCalendarUpdate }: ChatInterfaceProps) {
         setIsTyping(data.status)
       })
 
-      ws.on('action.feedback', (data) => {
-        const actionId = data.action_id || Date.now().toString()
-        
-        // Skip if we've already shown feedback for this action
-        setShownActionIds(prev => {
-          if (prev.has(actionId)) {
-            return prev
-          }
-          
-          const feedback: ActionFeedback = {
-            action_id: actionId,
-            status: data.status || 'completed',
-            message: data.message || 'Action completed',
-            result: data.result
-          }
-          setActionFeedbacks(feedbackPrev => [...feedbackPrev, feedback])
-          
-          return new Set(Array.from(prev).concat([actionId]))
-        })
-      })
-
       // Listen for AI actions completion
       ws.on('ai.action.completed', (action) => {
         console.log('AI action completed:', action)
