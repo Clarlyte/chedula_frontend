@@ -16,7 +16,7 @@ interface UserLoginFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 export function UserLoginForm({ className, ...props }: UserLoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || '/dashboard'
+  const redirectTo = searchParams.get('redirect') || '/dashboard/chat'
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 

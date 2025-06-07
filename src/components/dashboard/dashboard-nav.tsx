@@ -50,14 +50,14 @@ export function DashboardNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="grid items-start gap-2 p-4">
+    <nav className="flex flex-col gap-1 p-2">
       {items.map((item) => {
         const Icon = item.icon
         return (
           <Link key={item.href} href={item.href}>
             <Button
               variant={pathname === item.href ? "secondary" : "ghost"}
-              className="w-full justify-start"
+              className="w-full justify-start h-9"
             >
               <Icon className="mr-2 h-4 w-4" />
               {item.title}

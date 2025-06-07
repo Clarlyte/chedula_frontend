@@ -3,6 +3,7 @@ import "@/app/globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { DataProvider } from "@/components/providers/data-provider";
 import type { Metadata } from "next";
 import Script from "next/script";
 
@@ -29,9 +30,11 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-screen bg-background antialiased`}>
         <AuthProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          <DataProvider>
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>
+          </DataProvider>
         </AuthProvider>
       </body>
     </html>
