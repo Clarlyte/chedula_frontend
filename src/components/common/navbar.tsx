@@ -6,13 +6,20 @@ import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSmoothScroll } from "@/hooks/use-smooth-scroll"
+import { useRouter, usePathname } from "next/navigation"
 
 export function Navbar() {
+  const router = useRouter()
+  const pathname = usePathname()
   const scrollToSection = useSmoothScroll()
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault()
-    scrollToSection(id)
+    if (pathname !== '/') {
+      router.push(`/#${id}`)
+    } else {
+      scrollToSection(id)
+    }
   }
 
   return (

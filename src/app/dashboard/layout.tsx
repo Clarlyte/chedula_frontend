@@ -28,8 +28,7 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background bg-black text-gold-400">
       {/* Temporarily hide header for simplicity while focusing on sidebar toggle */}
-      {/* {user && <DashboardHeader user={user} />} */}
-      <Navbar />
+      {user && <DashboardHeader user={user} />}
 
       {/* Mobile Menu Toggle Button (visible on small screens) */}
       <div className="md:hidden fixed top-4 left-4 z-50">
